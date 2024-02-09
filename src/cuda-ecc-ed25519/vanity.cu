@@ -386,10 +386,9 @@ void __global__ vanity_scan(curandState* state, int* keys_found, int* gpu, int* 
 		// so it might make sense to write a new parallel kernel to do
 		// this.
 
-		if(key[0]=='p'&&key[1]=='o'&&key[2]=='w'&&key[3] >= '1' && key[3] <= '9'&&key[4] >= '1' && key[4] <= '9'&&key[5] >= '1' && key[5] <= '9')
+		if(key[0]=='p'&&key[1]=='o'&&key[2]=='w'&&key[3] >= '1' && key[3] <= '9'&&key[4] >= '1' && key[4] <= '9'&&key[5] >= '1' && key[5] <= '9' && key[6] >= '1' && key[6] <= '9' )
 		{
-
-				for(int i=6;i<10;i++)
+				for(int i=7;i<10;i++)
 				{
 					bool found=false;
 						if (key[i] >= '1' && key[i] <= '9')
