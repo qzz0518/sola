@@ -15,6 +15,7 @@
 #include "fixedint.h"
 #include "gpu_common.h"
 #include "gpu_ctx.h"
+#include "sha512.h"
 
 #include "keypair.cu"
 #include "sc.cu"
