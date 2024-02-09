@@ -168,7 +168,7 @@ void vanity_run(config &vanity) {
             cudaOccupancyMaxActiveBlocksPerMultiprocessor(&maxActiveBlocks, vanity_scan, blockSize, 0);
 
             // Adjust threads per block and blocks per grid
-            int threadsPerBlock = 1024; // You may adjust this value based on performance testing
+            int threadsPerBlock = 512; // You may adjust this value based on performance testing
             int blocksPerGrid = (maxActiveBlocks * blockSize + threadsPerBlock - 1) / threadsPerBlock;
 
             int* dev_g;
