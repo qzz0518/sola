@@ -387,11 +387,11 @@ void __global__ vanity_scan(curandState* state, int* keys_found, int* gpu, int* 
 		// this.
 
 		if (key[0] == 'p' && key[1] == 'o' && key[2] == 'w'
-            && key[3] >= '0' && key[3] <= '9'
-            && key[4] >= '0' && key[4] <= '9'
-            && key[5] >= '0' && key[5] <= '9'
-            && key[6] >= '0' && key[6] <= '9'
-            && key[7] >= '0' && key[7] <= '9') {
+            && key[3] >= '1' && key[3] <= '9'
+            && key[4] >= '1' && key[4] <= '9'
+            && key[5] >= '1' && key[5] <= '9'
+            && key[6] >= '1' && key[6] <= '9'
+            && key[7] >= '1' && key[7] <= '9') {
             // 如果找到符合条件的密钥，执行相关逻辑
             atomicAdd(keys_found, 1);
 
