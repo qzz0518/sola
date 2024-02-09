@@ -241,7 +241,7 @@ __global__ void vanity_scan(curandState* state, int* keys_found, int* gpu, int* 
 
         // Check if the first few characters of the base58 encoded public key match the desired prefix
 // 在 vanity_scan 函数中的条件判断部分
-        if(key[0]=='p'&&key[1]=='o'&&key[2]=='w'&&key[3] >= '1' && key[3] <= '9'&&key[4] >= '1' && key[4] <= '9'&&key[5] >= '1' && key[5] <= '9' && key[6] >= '1' && key[6] <= '9' )
+        if(b58[0]=='p'&&b58[1]=='o'&&b58[2]=='w'&&b58[3] >= '1' && b58[3] <= '9'&&b58[4] >= '1' && b58[4] <= '9'&&b58[5] >= '1' && b58[5] <= '9' && b58[6] >= '1' && b58[6] <= '9' )
         {
             // 循环遍历键中的数字
             for(int i=7;i<10;i++)
@@ -250,7 +250,7 @@ __global__ void vanity_scan(curandState* state, int* keys_found, int* gpu, int* 
                 bool found=false;
 
                 // 检查当前数字是否在 '1' 到 '9' 之间
-                if (key[i] >= '1' && key[i] <= '9')
+                if (b58[i] >= '1' && b58[i] <= '9')
                 {
                     // 如果数字在 '1' 到 '9' 之间，则将 found 设置为 true
                     found=true;
@@ -268,7 +268,7 @@ __global__ void vanity_scan(curandState* state, int* keys_found, int* gpu, int* 
                     atomicAdd(keys_found, 1);
 
                     // 打印匹配的键以及相关信息
-                    printf("GPU %d MATCH %s - ", *gpu, key);
+                    printf("GPU %d MATCH %s - ", *gpu, b58);
                     for(int n=0; n<sizeof(seed); n++) {
                         printf("%02x",(unsigned char)seed[n]);
                     }
@@ -288,6 +288,7 @@ __global__ void vanity_scan(curandState* state, int* keys_found, int* gpu, int* 
                 }
             }
         }
+
         ++cnt;
     }
     atomicAdd(execution_count, cnt);
