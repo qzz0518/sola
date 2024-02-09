@@ -142,83 +142,70 @@ void vanity_setup(config &vanity) {
 }
 
 void vanity_run(config &vanity) {
-	int gpuCount = 0;
-	cudaGetDeviceCount(&gpuCount);
+    int gpuCount = 0;
+    cudaGetDeviceCount(&gpuCount);
 
-	unsigned long long int  executions_total = 0;
-	unsigned long long int  executions_this_iteration;
-	int  executions_this_gpu;
-        int* dev_executions_this_gpu[100];
+    unsigned long long int executions_total = 0;
+    unsigned long long int executions_this_iteration;
+    int executions_this_gpu;
+    int* dev_executions_this_gpu[100]; // Assuming no more than 100 GPUs
 
-        int  keys_found_total = 0;
-        int  keys_found_this_iteration;
-        int* dev_keys_found[100]; // not more than 100 GPUs ok!
+    int keys_found_total = 0;
+    int keys_found_this_iteration;
+    int* dev_keys_found[100]; // Assuming no more than 100 GPUs
 
-	for (int i = 0; i < MAX_ITERATIONS; ++i) {
-		auto start  = std::chrono::high_resolution_clock::now();
+    for (int i = 0; i < MAX_ITERATIONS; ++i) {
+        auto start = std::chrono::high_resolution_clock::now();
 
-                executions_this_iteration=0;
+        executions_this_iteration = 0;
 
-		// Run on all GPUs
-		for (int g = 0; g < gpuCount; ++g) {
-			cudaSetDevice(g);
-			// Calculate Occupancy
-			int blockSize       = 0,
-			    minGridSize     = 0,
-			    maxActiveBlocks = 0;
-			cudaOccupancyMaxPotentialBlockSize(&minGridSize, &blockSize, vanity_scan, 0, 0);
-			cudaOccupancyMaxActiveBlocksPerMultiprocessor(&maxActiveBlocks, vanity_scan, blockSize, 0);
+        // Run on all GPUs
+        for (int g = 0; g < gpuCount; ++g) {
+            cudaSetDevice(g);
 
-			int* dev_g;
-	                cudaMalloc((void**)&dev_g, sizeof(int));
-                	cudaMemcpy( dev_g, &g, sizeof(int), cudaMemcpyHostToDevice );
+            // Calculate Occupancy
+            int blockSize = 0, minGridSize = 0, maxActiveBlocks = 0;
+            cudaOccupancyMaxPotentialBlockSize(&minGridSize, &blockSize, vanity_scan, 0, 0);
+            cudaOccupancyMaxActiveBlocksPerMultiprocessor(&maxActiveBlocks, vanity_scan, blockSize, 0);
 
-	                cudaMalloc((void**)&dev_keys_found[g], sizeof(int));
-	                cudaMalloc((void**)&dev_executions_this_gpu[g], sizeof(int));
+            // Adjust threads per block and blocks per grid
+            int threadsPerBlock = 1024; // You may adjust this value based on performance testing
+            int blocksPerGrid = (maxActiveBlocks * blockSize + threadsPerBlock - 1) / threadsPerBlock;
 
-			vanity_scan<<<maxActiveBlocks, blockSize>>>(vanity.states[g], dev_keys_found[g], dev_g, dev_executions_this_gpu[g]);
+            int* dev_g;
+            cudaMalloc((void**)&dev_g, sizeof(int));
+            cudaMemcpy(dev_g, &g, sizeof(int), cudaMemcpyHostToDevice);
 
-		}
+            cudaMalloc((void**)&dev_keys_found[g], sizeof(int));
+            cudaMalloc((void**)&dev_executions_this_gpu[g], sizeof(int));
 
-		// Synchronize while we wait for kernels to complete. I do not
-		// actually know if this will sync against all GPUs, it might
-		// just sync with the last `i`, but they should all complete
-		// roughly at the same time and worst case it will just stack
-		// up kernels in the queue to run.
-		cudaDeviceSynchronize();
-		auto finish = std::chrono::high_resolution_clock::now();
+            // Launch the vanity_scan kernel with calculated threadsPerBlock and blocksPerGrid
+            vanity_scan<<<blocksPerGrid, threadsPerBlock>>>(vanity.states[g], dev_keys_found[g], dev_g, dev_executions_this_gpu[g]);
+        }
 
-		for (int g = 0; g < gpuCount; ++g) {
-                	cudaMemcpy( &keys_found_this_iteration, dev_keys_found[g], sizeof(int), cudaMemcpyDeviceToHost );
-                	keys_found_total += keys_found_this_iteration;
-			//printf("GPU %d found %d keys\n",g,keys_found_this_iteration);
+        // Synchronize GPUs
+        cudaDeviceSynchronize();
+        auto finish = std::chrono::high_resolution_clock::now();
 
-                	cudaMemcpy( &executions_this_gpu, dev_executions_this_gpu[g], sizeof(int), cudaMemcpyDeviceToHost );
-                	executions_this_iteration += executions_this_gpu * ATTEMPTS_PER_EXECUTION;
-                	executions_total += executions_this_gpu * ATTEMPTS_PER_EXECUTION;
-                        //printf("GPU %d executions: %d\n",g,executions_this_gpu);
-		}
+        for (int g = 0; g < gpuCount; ++g) {
+            cudaMemcpy(&keys_found_this_iteration, dev_keys_found[g], sizeof(int), cudaMemcpyDeviceToHost);
+            keys_found_total += keys_found_this_iteration;
 
-		// Print out performance Summary
-		std::chrono::duration<double> elapsed = finish - start;
-		/*printf("%s Iteration %d Attempts: %llu in %f at %fcps - Total Attempts %llu - keys found %d\n",
-			getTimeStr().c_str(),
-			i+1,
-			executions_this_iteration, //(8 * 8 * 256 * 100000),
-			elapsed.count(),
-			executions_this_iteration / elapsed.count(),
-			executions_total,
-			keys_found_total
-		);*/
+            cudaMemcpy(&executions_this_gpu, dev_executions_this_gpu[g], sizeof(int), cudaMemcpyDeviceToHost);
+            executions_this_iteration += executions_this_gpu * ATTEMPTS_PER_EXECUTION;
+            executions_total += executions_this_gpu * ATTEMPTS_PER_EXECUTION;
+        }
 
-                if ( keys_found_total >= STOP_AFTER_KEYS_FOUND ) {
-                	printf("Enough keys found, Done! \n");
-		        exit(0);
-		}
-	}
+        // Check if enough keys were found
+        if (keys_found_total >= STOP_AFTER_KEYS_FOUND) {
+            printf("Enough keys found, Done! \n");
+            exit(0);
+        }
+    }
 
-	printf("Iterations complete, Done!\n");
+    printf("Iterations complete, Done!\n");
 }
+
 
 /* -- CUDA Vanity Functions ------------------------------------------------- */
 
