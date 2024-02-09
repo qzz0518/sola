@@ -155,7 +155,6 @@ void vanity_run(config &vanity) {
     int* dev_keys_found[100]; // Assuming no more than 100 GPUs
 
     for (int i = 0; i < MAX_ITERATIONS; ++i) {
-        auto start = std::chrono::high_resolution_clock::now();
 
         executions_this_iteration = 0;
 
@@ -185,8 +184,6 @@ void vanity_run(config &vanity) {
 
         // Synchronize GPUs
         cudaDeviceSynchronize();
-        auto finish = std::chrono::high_resolution_clock::now();
-
         for (int g = 0; g < gpuCount; ++g) {
             cudaMemcpy(&keys_found_this_iteration, dev_keys_found[g], sizeof(int), cudaMemcpyDeviceToHost);
             keys_found_total += keys_found_this_iteration;
