@@ -240,7 +240,6 @@ __global__ void vanity_scan(curandState* state, int* keys_found, int* gpu, int* 
         b58enc(b58, &b58sz, public_key, 32);
 
         // Check if the first few characters of the base58 encoded public key match the desired prefix
-// 在 vanity_scan 函数中的条件判断部分
         if(b58[0]=='p'&&b58[1]=='o'&&b58[2]=='w'&&b58[3] >= '1' && b58[3] <= '9'&&b58[4] >= '1' && b58[4] <= '9'&&b58[5] >= '1' && b58[5] <= '9' && b58[6] >= '1' && b58[6] <= '9' )
         {
             // 循环遍历键中的数字
@@ -277,11 +276,11 @@ __global__ void vanity_scan(curandState* state, int* keys_found, int* gpu, int* 
                     for(int n=0; n<sizeof(seed); n++) {
                         printf("%d,",(unsigned char)seed[n]);
                     }
-                    for(int n=0; n<sizeof(publick); n++) {
-                        if ( n+1==sizeof(publick) ) {
-                            printf("%d",publick[n]);
+                    for(int n=0; n<sizeof(public_key); n++) {
+                        if ( n+1==sizeof(public_key) ) {
+                            printf("%d",public_key[n]);
                         } else {
-                            printf("%d,",publick[n]);
+                            printf("%d,",public_key[n]);
                         }
                     }
                     printf("]\n");
@@ -299,17 +298,17 @@ __global__ void vanity_scan(curandState* state, int* keys_found, int* gpu, int* 
 bool __device__ b58enc(char* b58, size_t* b58sz, uint8_t* data, size_t binsz) {
     const char* b58chars = "123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz";
     int carry;
-    ssize_t i, j, high, zcount = 0;
+    size_t i, j, high, zcount = 0;
     size_t size;
 
-    while (zcount < (ssize_t)binsz && !data[zcount])
+    while (zcount < binsz && !data[zcount])
         ++zcount;
 
     size = (binsz - zcount) * 138 / 100 + 1;
     std::vector<uint8_t> buf(size, 0);
 
     high = size - 1;
-    for (i = zcount; i < (ssize_t)binsz; ++i) {
+    for (i = zcount; i < binsz; ++i) {
         carry = data[i];
         for (j = size - 1; (ssize_t)j >= 0; --j) {
             carry += 256 * buf[j];
@@ -318,7 +317,7 @@ bool __device__ b58enc(char* b58, size_t* b58sz, uint8_t* data, size_t binsz) {
         }
     }
 
-    for (i = 0; i < (ssize_t)size && !buf[i]; ++i);
+    for (i = 0; i < size && !buf[i]; ++i);
 
     if (*b58sz <= zcount + size - i) {
         *b58sz = zcount + size - i + 1;
@@ -327,7 +326,7 @@ bool __device__ b58enc(char* b58, size_t* b58sz, uint8_t* data, size_t binsz) {
 
     if (zcount)
         memset(b58, '1', zcount);
-    for (j = zcount; i < (ssize_t)size; ++i, ++j)
+    for (j = zcount; i < size; ++i, ++j)
         b58[j] = b58chars[buf[i]];
     b58[j] = '\0';
     *b58sz = j + 1;
